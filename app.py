@@ -1,13 +1,57 @@
-"""Aplicación Flask del proyecto 25N.
+from flask import Flask, redirect, render_template, request, url_for
 
-Responsables:
-- T01: creación de la app, init de la BD, POST /mural, POST /foro, /participa, /gracias
-- T02: decorador de HTTP Basic Auth, GET /api/mural, GET /api/foro, GET /pantalla
-- T03: GET /admin y POST /admin/<tabla>/<id>/<accion>
+from bd import db
 
-Toda la base de datos se usa a través de `bd.db` (no escribir SQL aquí).
-"""
 
-# TODO T01: crear la app Flask y llamar a db.init_db() al arrancar.
-# from flask import Flask
-# from bd import db
+def create_app():
+    app = Flask(__name__)
+    db.init_db()
+
+    @app.get("/participa")
+    def participa():
+        return render_template("participa.html")
+
+    @app.post("/mural")
+    def enviar_mural():
+        texto = request.form.get("texto", "").strip()
+        if not texto:
+            return render_template("participa.html", error_message="Escribe un mensaje antes de enviarlo."), 400
+        if len(texto) > 200:
+            return render_template("participa.html", error_message="El mensaje no puede superar los 200 caracteres."), 400
+
+        db.insertar_mural(texto)
+        return redirect(url_for("gracias"))
+    
+    @app.post("/foro")
+    def enviar_foro():
+        titulo = request.form.get("titulo", "").strip()
+        texto = request.form.get("texto", "").strip()
+
+        if not titulo:
+            error_message = "Escribe un título antes de enviar la reflexión."
+        elif len(titulo) > 80:
+            error_message = "El título no puede superar los 80 caracteres."
+        elif not texto:
+            error_message = "Escribe una reflexión antes de enviarla."
+        elif len(texto) > 1000:
+            error_message = "La reflexión no puede superar los 1000 caracteres."
+        else:
+            error_message = None
+
+        if error_message:
+            return render_template( "templates/participa.html", error_message=error_message,), 400
+
+        db.insertar_foro(titulo, texto)
+        return redirect(url_for("gracias"))
+    
+    @app.get("/gracias")
+    def gracias():
+        return render_template("gracias.html")
+
+    return app
+
+app = create_app()
+
+
+if __name__ == "__main__":
+    app.run()
