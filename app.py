@@ -2,7 +2,6 @@ from flask import Flask, redirect, render_template, request, url_for
 
 from bd import db
 
-
 def create_app():
     app = Flask(__name__)
     db.init_db()
